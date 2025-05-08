@@ -26,5 +26,58 @@ def get_auth_token():
         response = session.get(url, headers=headers)
     return jsonify(response.json())
 
+@app.route("/update-transaction", methods=["POST"])
+def update_transaction_route():
+    data = request.json
+    required_fields = ["amount", "category", "tag", "comment", "reimbursable", "billable", "transactionID", "auth_token"]
+    
+    # Ensure all required keys are present (even if empty)
+    if not all(field in data for field in required_fields):
+        return jsonify({"error": "Missing one or more required fields"}), 400
+
+    url = (
+        f"https://www.expensify.com/api?command=UpdateTransaction"
+        f"&authToken={data['auth_token']}"
+        f"&transactionID={data['transactionID']}"
+        f"&amount={data['amount']}"
+        f"&category={data['category']}"
+        f"&tag={data['tag']}"
+        f"&comment={data['comment']}"
+        f"&reimbursable={str(data['reimbursable']).lower()}"
+        f"&billable={str(data['billable']).lower()}"
+    )
+
+    with requests.Session(impersonate="chrome110") as session:
+        response = session.get(url, headers=headers)
+
+    return jsonify({"response": response.text})
+
+@app.route("/get-report-details", methods=["POST"])
+def get_report_details_route():
+    data = request.json
+    report_id = data.get("reportId")
+    auth_token = data.get("auth_token")
+    if not report_id:
+        return jsonify({"error": "Missing 'reportId' in request"}), 400
+
+    url = (
+        f"https://www.expensify.com/api/Get?returnValueList=reportStuff"
+        f"&reportIDList={report_id}&shouldLoadOptionalKeys=false&pageName=report"
+    )
+
+    cookies = {
+        "authToken": auth_token
+    }
+
+    with requests.Session(impersonate="chrome110") as session:
+        response = session.get(url, headers=headers, cookies=cookies)
+        data = response.json()
+
+    return jsonify({
+        "status": response.status_code,
+        "transactions": data['reports'][report_id]['transactionList']
+    })
+
+
 if __name__ == '__main__':
     app.run(debug=True) 
