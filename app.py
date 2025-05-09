@@ -78,6 +78,27 @@ def get_report_details_route():
         "transactions": data['reports'][report_id]['transactionList']
     })
 
+@app.route("/get-reportID", methods=["POST"])
+def get_reportID_route():
+    data = request.json
+    auth_token = data.get("auth_token")
+    if not auth_token:
+        return jsonify({"error": "Missing 'auth_token' in request"}), 400
+    
+    url = (
+        f"https://www.expensify.com/api/Get?returnValueList=reportListBeta"
+        f"&states=OPEN&pageName=reports&sortBy=created&sortOrder=desc"
+    )
+
+    cookies = {
+        "authToken": auth_token
+    }
+
+    with requests.Session(impersonate="chrome110") as session:
+        response = session.get(url, headers=headers, cookies=cookies)
+        data = response.json()
+    return jsonify({"reportID": data["reportListBeta"][0]["reportID"]})
+
 
 if __name__ == '__main__':
     app.run(debug=True) 
