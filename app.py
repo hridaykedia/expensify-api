@@ -75,7 +75,7 @@ def get_report_details_route():
 
     return jsonify({
         "status": response.status_code,
-        "transactions": data['reports'][report_id]['transactionList']
+        "transactions": data
     })
 
 @app.route("/get-reportID", methods=["POST"])
