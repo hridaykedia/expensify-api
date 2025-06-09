@@ -82,6 +82,7 @@ def get_report_details_route():
 def get_reportID_route():
     data = request.json
     auth_token = data.get("auth_token")
+    search_string = data.get("search_string")
     if not auth_token:
         return jsonify({"error": "Missing 'auth_token' in request"}), 400
     
@@ -97,6 +98,11 @@ def get_reportID_route():
     with requests.Session(impersonate="chrome110") as session:
         response = session.get(url, headers=headers, cookies=cookies)
         data = response.json()
+        reports = data.get("reportListBeta", [])
+        for report in reports:
+            name = report.get("reportName", "")
+            if search_string in name:
+                return jsonify({"reportID": report.get('reportID')})
     return jsonify({"reportID": data["reportListBeta"][0]["reportID"]})
 
 
