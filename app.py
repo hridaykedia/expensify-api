@@ -108,6 +108,9 @@ def get_reportID_route():
 
 @app.route("/upload-receipt", methods=["POST"])
 def upload_receipt():
+    print("FORM:", request.form)
+    print("FILES:", request.files)
+    print("CONTENT TYPE:", request.content_type)
     auth_token = request.form.get("auth_token")
     report_id = request.form.get("reportId")
     transaction_id = request.form.get("transactionId")
