@@ -1,5 +1,6 @@
 from flask import Flask, request, jsonify
 import curl_cffi.requests as requests
+from curl_cffi import CurlMime
 
 app = Flask(__name__)
 
@@ -105,6 +106,53 @@ def get_reportID_route():
                 return jsonify({"reportID": report.get('reportID')})
     return jsonify({"reportID": data["reportListBeta"][0]["reportID"]})
 
+@app.route("/upload-receipt", methods=["POST"])
+def upload_receipt():
+    auth_token = request.form.get("auth_token")
+    report_id = request.form.get("reportId")
+    transaction_id = request.form.get("transactionId")
+    file = request.files.get("file")
+
+    if not auth_token or not transaction_id or not file:
+        return jsonify({"error": "auth_token, transactionID and file required"}), 400
+
+    transaction_list = [
+        {
+            "localID": "expense_attach",
+            "receipt": {
+                "fileID": "expense_attach",
+                "reportID": report_id,
+                "transactionID": transaction_id
+            }
+        }
+    ]
+
+    mime = CurlMime()
+
+    mime.addpart(name="command", data="Expense_Create")
+    mime.addpart(name="authToken", data=auth_token)
+    mime.addpart(name="localID", data="expense_attach")
+    mime.addpart(name="transactionList", data=json.dumps(transaction_list))
+    mime.addpart(name="isManualRequestScan", data="false")
+
+    mime.addpart(
+        name="expense_attach",
+        filename=file.filename,
+        content_type="application/pdf",
+        data=file.read(),   # ← IMPORTANT
+    )
+
+    with requests.Session(impersonate="chrome110") as session:
+        response = session.post(
+            "https://www.expensify.com/api",
+            headers=headers,
+            multipart=mime,
+        )
+
+    return jsonify({
+        "status": response.status_code,
+        "response": response.text
+    })
 
 if __name__ == '__main__':
     app.run(debug=True) 
